@@ -89,10 +89,11 @@ public class AuthController {
             created.setFullName(fullName);
             created.setUsername(guestUsername);
             created.setPassword(encoder.encode("guest-user-no-password"));
-            created.setDivision(divisions.findByNameIgnoreCase("Newsroom").orElse(null));
+            created.setDivision(request.divisionId() == null ? null : divisions.findById(request.divisionId()).orElse(null));
             return created;
         });
         user.setFullName(fullName);
+        user.setDivision(request.divisionId() == null ? null : divisions.findById(request.divisionId()).orElse(null));
         user.setOnline(true);
         users.save(user);
         return new Dto.AuthResponse(jwtService.generate(user), mapper.user(user));

@@ -17,7 +17,7 @@ export default function ProfilePage() {
   }, []);
 
   async function save() {
-    const { data } = await api.put('/profile', { ...form, divisionId: Number(form.divisionId) });
+    const { data } = await api.put('/profile', { ...form, divisionId: form.divisionId ? Number(form.divisionId) : null });
     setUser(data);
   }
 
@@ -54,7 +54,7 @@ export default function ProfilePage() {
             <label className="block">
               <span className="text-sm font-bold text-slate-600">Divisi</span>
               <select className="mt-2 w-full rounded-2xl border border-blue-100 bg-white/70 px-4 py-3 outline-none" value={form.divisionId} onChange={(e) => setForm({ ...form, divisionId: e.target.value })}>
-                <option value="">Pilih divisi</option>
+                <option value="">Umum</option>
                 {divisions.map((division) => <option key={division.id} value={division.id}>{division.name}</option>)}
               </select>
             </label>

@@ -48,7 +48,19 @@ public class ChatController {
 
     @GetMapping("/rooms")
     public List<Dto.RoomResponse> rooms() {
-        return rooms.findByActiveTrueOrderByNameAsc().stream().map(mapper::room).toList();
+        return rooms.findByActiveTrueOrderByNameAsc().stream()
+                .sorted(Comparator.comparingInt((Room room) -> roomWeight(room.getType())).thenComparing(Room::getName))
+                .map(mapper::room)
+                .toList();
+    }
+
+    private int roomWeight(RoomType type) {
+        return switch (type) {
+            case GENERAL -> 0;
+            case DIVISION -> 1;
+            case CUSTOM -> 2;
+            case DIRECT -> 3;
+        };
     }
 
     @GetMapping("/rooms/{roomId}/messages")

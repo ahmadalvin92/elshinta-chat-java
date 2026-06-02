@@ -19,10 +19,15 @@ spring:
       max-file-size: 5MB
       max-request-size: 5MB
 
+logging:
+  level:
+    root: INFO
+    org.hibernate.SQL: WARN
+    org.springframework.web: INFO
+
 app:
   jwt-secret: ${JWT_SECRET:change-this-local-development-secret-change-this}
   jwt-expiration-minutes: ${JWT_EXPIRATION_MINUTES:1440}
   internal-access-code: ${INTERNAL_ACCESS_CODE:ELSHINTA-INTERNAL-2026}
   upload-dir: ${UPLOAD_DIR:media}
   allowed-origins: ${ALLOWED_ORIGINS:http://localhost:5173,http://127.0.0.1:5173}
-

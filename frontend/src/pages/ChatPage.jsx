@@ -30,11 +30,17 @@ export default function ChatPage() {
 
   useEffect(() => {
     api.get('/chat/rooms').then(({ data }) => {
-      setRooms(data);
-      setActiveRoom(data[0] || null);
+      const sorted = sortRooms(data);
+      setRooms(sorted);
+      setActiveRoom(sorted.find((room) => room.type === 'GENERAL') || sorted[0] || null);
     });
     api.get('/chat/users').then(({ data }) => setDirectUsers(data));
   }, []);
+
+  function sortRooms(data) {
+    const weight = { GENERAL: 0, DIVISION: 1, CUSTOM: 2, DIRECT: 3 };
+    return [...data].sort((a, b) => (weight[a.type] ?? 9) - (weight[b.type] ?? 9) || a.name.localeCompare(b.name));
+  }
 
   useEffect(() => {
     if (!activeRoom) return;
@@ -83,7 +89,7 @@ export default function ChatPage() {
 
   async function openDirect(target) {
     const { data } = await api.post(`/chat/direct/${target.id}`);
-    setRooms((prev) => [data, ...prev.filter((room) => room.id !== data.id)]);
+    setRooms((prev) => sortRooms([data, ...prev.filter((room) => room.id !== data.id)]));
     setActiveRoom(data);
     setActivePeer(target);
     setMobileNav(false);
@@ -188,7 +194,7 @@ export default function ChatPage() {
 
   return (
     <main className="app-shell">
-      <div className="glass mx-auto grid h-[calc(100vh-36px)] max-w-[1440px] grid-cols-1 overflow-hidden rounded-[32px] lg:grid-cols-[280px_1fr_290px]">
+      <div className="glass mx-auto grid h-full max-w-[1440px] grid-cols-1 overflow-hidden rounded-[32px] lg:grid-cols-[280px_1fr_290px]">
         <aside className={`${mobileNav ? 'block' : 'hidden'} border-r border-blue-100/80 p-5 lg:block`}>
           <Logo />
           <nav className="mt-8 space-y-3">
@@ -276,11 +282,11 @@ export default function ChatPage() {
             <div className="p-6 text-center">
               <Avatar large name={user?.fullName || 'User'} src={user?.avatarUrl} />
               <h3 className="mt-3 text-3xl font-black">{user?.fullName}</h3>
-              <p className="mt-1 rounded-full bg-white/25 px-3 py-1 text-sm">{user?.division || 'Internal'}</p>
+              <p className="mt-1 rounded-full bg-white/25 px-3 py-1 text-sm">{user?.division || 'Umum'}</p>
             </div>
             <div className="space-y-2 bg-white p-4 text-elBlueDark">
               <Link className="flex items-center gap-3 rounded-2xl p-3 hover:bg-soft" to="/profile"><UserRound size={18} /> Edit Profile</Link>
-              <Link className="flex items-center gap-3 rounded-2xl p-3 hover:bg-soft" to="/admin"><Settings size={18} /> Admin Panel</Link>
+              {(user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN') && <Link className="flex items-center gap-3 rounded-2xl p-3 hover:bg-soft" to="/admin"><Settings size={18} /> Admin Panel</Link>}
               <button className="flex w-full items-center gap-3 rounded-2xl p-3 text-red-500 hover:bg-red-50" onClick={logout}><LogOut size={18} /> Logout</button>
             </div>
           </div>

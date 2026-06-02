@@ -41,7 +41,7 @@ public class ProfileController {
         var user = users.findByUsername(auth.getName()).orElseThrow();
         user.setFullName(request.fullName());
         user.setStatusMessage(request.statusMessage());
-        user.setDivision(divisions.findById(request.divisionId()).orElse(null));
+        user.setDivision(request.divisionId() == null ? null : divisions.findById(request.divisionId()).orElse(null));
         return mapper.user(users.save(user));
     }
 
