@@ -5,13 +5,21 @@ const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [token, setToken] = useState(localStorage.getItem('elshinta_token'));
-  const [user, setUser] = useState(() => JSON.parse(localStorage.getItem('elshinta_user') || 'null'));
+  const [user, setUserState] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('elshinta_user') || 'null');
+    } catch {
+      localStorage.removeItem('elshinta_user');
+      localStorage.removeItem('elshinta_token');
+      return null;
+    }
+  });
 
   const value = useMemo(() => ({
-    token,
+    token: user ? token : null,
     user,
     setUser: (next) => {
-      setUser(next);
+      setUserState(next);
       localStorage.setItem('elshinta_user', JSON.stringify(next));
     },
     async login(payload) {
@@ -19,14 +27,14 @@ export function AuthProvider({ children }) {
       localStorage.setItem('elshinta_token', data.token);
       localStorage.setItem('elshinta_user', JSON.stringify(data.user));
       setToken(data.token);
-      setUser(data.user);
+      setUserState(data.user);
     },
     async register(payload) {
       const { data } = await api.post('/auth/register', payload);
       localStorage.setItem('elshinta_token', data.token);
       localStorage.setItem('elshinta_user', JSON.stringify(data.user));
       setToken(data.token);
-      setUser(data.user);
+      setUserState(data.user);
       return data;
     },
     async logout() {
@@ -36,7 +44,7 @@ export function AuthProvider({ children }) {
         localStorage.removeItem('elshinta_token');
         localStorage.removeItem('elshinta_user');
         setToken(null);
-        setUser(null);
+        setUserState(null);
       }
     },
   }), [token, user]);
