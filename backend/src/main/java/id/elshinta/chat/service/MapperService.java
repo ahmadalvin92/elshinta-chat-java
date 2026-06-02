@@ -1,6 +1,7 @@
 package id.elshinta.chat.service;
 
 import id.elshinta.chat.dto.Dto;
+import id.elshinta.chat.entity.Announcement;
 import id.elshinta.chat.entity.Message;
 import id.elshinta.chat.entity.Room;
 import id.elshinta.chat.entity.User;
@@ -32,5 +33,14 @@ public class MapperService {
         return new Dto.MessageResponse(message.getId(), message.getRoom().getId(), user(message.getSender()),
                 message.getType(), message.getContent(), message.getFileUrl(), message.getOriginalFileName(), message.getCreatedAt());
     }
-}
 
+    public Dto.AnnouncementResponse announcement(Announcement announcement) {
+        return new Dto.AnnouncementResponse(
+                announcement.getId(),
+                announcement.getTitle(),
+                announcement.getBody(),
+                user(announcement.getCreatedBy()),
+                announcement.getCreatedAt()
+        );
+    }
+}

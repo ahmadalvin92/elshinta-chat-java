@@ -9,14 +9,17 @@ export default function AdminPage() {
   const [divisions, setDivisions] = useState([]);
   const [users, setUsers] = useState([]);
   const [rooms, setRooms] = useState([]);
+  const [latestAnnouncements, setLatestAnnouncements] = useState([]);
   const [divisionName, setDivisionName] = useState('');
   const [announcement, setAnnouncement] = useState({ title: '', body: '' });
+  const [announcementStatus, setAnnouncementStatus] = useState('');
 
   function load() {
     api.get('/admin/dashboard').then(({ data }) => setDashboard(data));
     api.get('/admin/divisions').then(({ data }) => setDivisions(data));
     api.get('/admin/users').then(({ data }) => setUsers(data));
     api.get('/admin/rooms').then(({ data }) => setRooms(data));
+    api.get('/admin/announcements').then(({ data }) => setLatestAnnouncements(data));
   }
 
   useEffect(load, []);
@@ -29,8 +32,19 @@ export default function AdminPage() {
   }
 
   async function sendAnnouncement() {
-    await api.post('/admin/announcements', announcement);
-    setAnnouncement({ title: '', body: '' });
+    if (!announcement.title.trim() || !announcement.body.trim()) {
+      setAnnouncementStatus('Judul dan pesan wajib diisi.');
+      return;
+    }
+    setAnnouncementStatus('Mengirim...');
+    try {
+      await api.post('/admin/announcements', announcement);
+      setAnnouncement({ title: '', body: '' });
+      setAnnouncementStatus('Pengumuman berhasil dikirim ke semua user.');
+      load();
+    } catch {
+      setAnnouncementStatus('Pengumuman gagal dikirim. Cek login admin dan koneksi backend.');
+    }
   }
 
   return (
@@ -70,6 +84,15 @@ export default function AdminPage() {
             <input className="mb-3 w-full rounded-2xl border border-blue-100 bg-white/75 px-4 py-3 outline-none" placeholder="Judul" value={announcement.title} onChange={(e) => setAnnouncement({ ...announcement, title: e.target.value })} />
             <textarea className="mb-3 min-h-28 w-full rounded-2xl border border-blue-100 bg-white/75 px-4 py-3 outline-none" placeholder="Pesan pengumuman" value={announcement.body} onChange={(e) => setAnnouncement({ ...announcement, body: e.target.value })} />
             <button onClick={sendAnnouncement} className="rounded-2xl bg-elGreen px-5 py-3 font-black text-white">Kirim Pengumuman</button>
+            {announcementStatus && <p className="mt-3 text-sm font-bold text-elBlueDark">{announcementStatus}</p>}
+            <div className="mt-5 space-y-2">
+              {latestAnnouncements.map((item) => (
+                <div key={item.id} className="rounded-2xl bg-soft px-4 py-3">
+                  <p className="font-black text-elBlueDark">{item.title}</p>
+                  <p className="text-sm text-slate-600">{item.body}</p>
+                </div>
+              ))}
+            </div>
           </Panel>
         </div>
       </div>
@@ -88,4 +111,3 @@ function Panel({ icon, title, children }) {
 function Row({ left, sub, right }) {
   return <div className="flex items-center justify-between rounded-2xl bg-soft px-4 py-3"><div><p className="font-bold">{left}</p>{sub && <p className="text-xs text-slate-500">{sub}</p>}</div><span className="rounded-full bg-white px-3 py-1 text-xs font-black text-elBlue">{right}</span></div>;
 }
-

@@ -123,13 +123,19 @@ public class AdminController {
     }
 
     @PostMapping("/announcements")
-    public Announcement announce(Authentication auth, @RequestBody Dto.AnnouncementRequest request) {
+    public Dto.AnnouncementResponse announce(Authentication auth, @RequestBody Dto.AnnouncementRequest request) {
         Announcement announcement = new Announcement();
         announcement.setTitle(request.title());
         announcement.setBody(request.body());
         announcement.setCreatedBy(users.findByUsername(auth.getName()).orElseThrow());
         Announcement saved = announcements.save(announcement);
-        broker.convertAndSend("/topic/announcements", saved);
-        return saved;
+        Dto.AnnouncementResponse response = mapper.announcement(saved);
+        broker.convertAndSend("/topic/announcements", response);
+        return response;
+    }
+
+    @GetMapping("/announcements")
+    public List<Dto.AnnouncementResponse> announcements() {
+        return announcements.findTop20ByOrderByCreatedAtDesc().stream().map(mapper::announcement).toList();
     }
 }

@@ -22,6 +22,7 @@ export default function ChatPage() {
   const [incomingCall, setIncomingCall] = useState(null);
   const [callState, setCallState] = useState(null);
   const [remoteStream, setRemoteStream] = useState(null);
+  const [announcementToast, setAnnouncementToast] = useState(null);
   const fileRef = useRef(null);
   const pcRef = useRef(null);
   const localStreamRef = useRef(null);
@@ -49,6 +50,10 @@ export default function ChatPage() {
           setActiveRoom((room) => (room?.id === deletedId ? null : room));
         });
         client.subscribe(`/topic/calls/${user?.id}`, (frame) => handleCallSignal(JSON.parse(frame.body)));
+        client.subscribe('/topic/announcements', (frame) => {
+          const announcement = JSON.parse(frame.body);
+          setAnnouncementToast(announcement);
+        });
       },
     });
     client.activate();
@@ -299,6 +304,18 @@ export default function ChatPage() {
               <button onClick={() => endCall()} className="inline-flex items-center gap-2 rounded-2xl bg-red-500 px-5 py-3 font-black text-white"><PhoneOff size={18} /> Tutup</button>
             </div>
           </section>
+        </div>
+      )}
+      {announcementToast && (
+        <div className="fixed right-5 top-5 z-50 max-w-sm rounded-3xl bg-white p-5 text-elBlueDark shadow-soft">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-xs font-black uppercase text-elBlue">Announcement</p>
+              <h3 className="mt-1 text-lg font-black">{announcementToast.title}</h3>
+              <p className="mt-1 text-sm text-slate-600">{announcementToast.body}</p>
+            </div>
+            <button onClick={() => setAnnouncementToast(null)} className="rounded-full bg-soft p-1 text-elBlue"><X size={16} /></button>
+          </div>
         </div>
       )}
     </main>

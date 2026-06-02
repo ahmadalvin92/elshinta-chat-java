@@ -23,6 +23,7 @@ public class Dto {
     public record AdminUserRequest(String fullName, Long divisionId, Role role, boolean enabled) {}
     public record ResetPasswordRequest(String newPassword) {}
     public record AnnouncementRequest(String title, String body) {}
+    public record AnnouncementResponse(Long id, String title, String body, UserResponse createdBy, LocalDateTime createdAt) {}
     public record DashboardResponse(long totalUser, long totalRoom, long userOnline, long totalAnnouncement) {}
     public record CallSignal(Long toUserId, Long fromUserId, String fromName, String mode, String type, String payload) {}
 }
