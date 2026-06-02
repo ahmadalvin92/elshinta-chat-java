@@ -9,6 +9,7 @@ import java.util.List;
 
 public interface MessageRepository extends JpaRepository<Message, Long> {
     List<Message> findTop80ByRoomOrderByCreatedAtDesc(Room room);
+    List<Message> findByRoom(Room room);
+    void deleteByRoom(Room room);
     List<Message> findByCreatedAtBefore(LocalDateTime cutoff);
 }
-

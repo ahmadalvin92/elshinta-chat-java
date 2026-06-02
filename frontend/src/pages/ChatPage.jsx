@@ -2,7 +2,7 @@ import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
-import { Bell, Image, LogOut, Menu, Mic, Paperclip, Search, Send, Settings, Smile, UserRound, Video } from 'lucide-react';
+import { Bell, Image, LogOut, Menu, Mic, Paperclip, PhoneOff, Search, Send, Settings, Smile, UserRound, Video, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { API_BASE, api, mediaUrl } from '../api/client.js';
@@ -18,7 +18,14 @@ export default function ChatPage() {
   const [text, setText] = useState('');
   const [showEmoji, setShowEmoji] = useState(false);
   const [mobileNav, setMobileNav] = useState(false);
+  const [activePeer, setActivePeer] = useState(null);
+  const [incomingCall, setIncomingCall] = useState(null);
+  const [callState, setCallState] = useState(null);
+  const [remoteStream, setRemoteStream] = useState(null);
   const fileRef = useRef(null);
+  const pcRef = useRef(null);
+  const localStreamRef = useRef(null);
+  const remoteVideoRef = useRef(null);
 
   useEffect(() => {
     api.get('/chat/rooms').then(({ data }) => {
@@ -34,11 +41,25 @@ export default function ChatPage() {
     const client = new Client({
       webSocketFactory: () => new SockJS(`${API_BASE}/ws`),
       connectHeaders: { username: user?.username || '' },
-      onConnect: () => client.subscribe(`/topic/rooms/${activeRoom.id}`, (frame) => setMessages((prev) => [...prev, JSON.parse(frame.body)])),
+      onConnect: () => {
+        client.subscribe(`/topic/rooms/${activeRoom.id}`, (frame) => setMessages((prev) => [...prev, JSON.parse(frame.body)]));
+        client.subscribe('/topic/rooms/deleted', (frame) => {
+          const deletedId = Number(frame.body);
+          setRooms((prev) => prev.filter((room) => room.id !== deletedId));
+          setActiveRoom((room) => (room?.id === deletedId ? null : room));
+        });
+        client.subscribe(`/topic/calls/${user?.id}`, (frame) => handleCallSignal(JSON.parse(frame.body)));
+      },
     });
     client.activate();
     return () => client.deactivate();
   }, [activeRoom?.id]);
+
+  useEffect(() => {
+    if (remoteVideoRef.current && remoteStream) {
+      remoteVideoRef.current.srcObject = remoteStream;
+    }
+  }, [remoteStream]);
 
   async function send() {
     if (!text.trim() || !activeRoom) return;
@@ -57,9 +78,107 @@ export default function ChatPage() {
 
   async function openDirect(target) {
     const { data } = await api.post(`/chat/direct/${target.id}`);
-    setRooms((prev) => [data, ...prev]);
+    setRooms((prev) => [data, ...prev.filter((room) => room.id !== data.id)]);
     setActiveRoom(data);
+    setActivePeer(target);
     setMobileNav(false);
+  }
+
+  function selectRoom(room) {
+    setActiveRoom(room);
+    setActivePeer(room.type === 'DIRECT' ? peerForRoom(room) : null);
+    setMobileNav(false);
+  }
+
+  function peerForRoom(room) {
+    if (!room || room.type !== 'DIRECT') return null;
+    return directUsers.find((item) => item.id !== user?.id && room.name.includes(item.fullName)) || activePeer;
+  }
+
+  async function deleteRoom(event, room) {
+    event.stopPropagation();
+    if (!window.confirm(`Hapus ${room.name}? Pesan dan gambar di room ini ikut dihapus.`)) return;
+    await api.delete(`/chat/rooms/${room.id}`);
+    setRooms((prev) => prev.filter((item) => item.id !== room.id));
+    if (activeRoom?.id === room.id) {
+      const next = rooms.find((item) => item.id !== room.id && item.type !== 'DIRECT') || null;
+      setActiveRoom(next);
+      setActivePeer(null);
+      setMessages([]);
+    }
+  }
+
+  async function sendSignal(toUserId, mode, type, payload = '') {
+    await api.post('/calls/signal', { toUserId, mode, type, payload });
+  }
+
+  async function createPeerConnection(peer, mode) {
+    const pc = new RTCPeerConnection({ iceServers: [] });
+    pc.onicecandidate = (event) => {
+      if (event.candidate) sendSignal(peer.id, mode, 'candidate', JSON.stringify(event.candidate));
+    };
+    pc.ontrack = (event) => setRemoteStream(event.streams[0]);
+    localStreamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true, video: mode === 'video' });
+    localStreamRef.current.getTracks().forEach((track) => pc.addTrack(track, localStreamRef.current));
+    pcRef.current = pc;
+    return pc;
+  }
+
+  async function startCall(mode) {
+    const peer = activePeer || peerForRoom(activeRoom);
+    if (!peer) {
+      alert('Pilih room DM dulu untuk voice/video call.');
+      return;
+    }
+    const pc = await createPeerConnection(peer, mode);
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    setCallState({ mode, peer, status: 'Memanggil...' });
+    await sendSignal(peer.id, mode, 'offer', JSON.stringify(offer));
+  }
+
+  async function acceptCall() {
+    const call = incomingCall;
+    if (!call) return;
+    const peer = { id: call.fromUserId, fullName: call.fromName };
+    const pc = await createPeerConnection(peer, call.mode);
+    await pc.setRemoteDescription(JSON.parse(call.payload));
+    const answer = await pc.createAnswer();
+    await pc.setLocalDescription(answer);
+    setCallState({ mode: call.mode, peer, status: 'Terhubung' });
+    setIncomingCall(null);
+    await sendSignal(peer.id, call.mode, 'answer', JSON.stringify(answer));
+  }
+
+  async function handleCallSignal(signal) {
+    if (signal.type === 'offer') {
+      setIncomingCall(signal);
+      return;
+    }
+    if (signal.type === 'answer' && pcRef.current) {
+      await pcRef.current.setRemoteDescription(JSON.parse(signal.payload));
+      setCallState((prev) => prev ? { ...prev, status: 'Terhubung' } : prev);
+      return;
+    }
+    if (signal.type === 'candidate' && pcRef.current) {
+      await pcRef.current.addIceCandidate(JSON.parse(signal.payload));
+      return;
+    }
+    if (signal.type === 'hangup') {
+      endCall(false);
+    }
+  }
+
+  async function endCall(notify = true) {
+    const peer = callState?.peer || incomingCall && { id: incomingCall.fromUserId };
+    if (notify && peer) await sendSignal(peer.id, callState?.mode || incomingCall?.mode || 'voice', 'hangup');
+    pcRef.current?.close();
+    pcRef.current = null;
+    localStreamRef.current?.getTracks().forEach((track) => track.stop());
+    localStreamRef.current = null;
+    setRemoteStream(null);
+    setCallState(null);
+    setIncomingCall(null);
   }
 
   return (
@@ -69,10 +188,17 @@ export default function ChatPage() {
           <Logo />
           <nav className="mt-8 space-y-3">
             {rooms.map((room) => (
-              <button key={room.id} onClick={() => { setActiveRoom(room); setMobileNav(false); }} className={`flex w-full items-center justify-between rounded-2xl px-4 py-3 text-left font-bold ${activeRoom?.id === room.id ? 'bg-elBlue text-white shadow-soft' : 'bg-white/55 text-elBlueDark'}`}>
-                <span># {room.name}</span>
+              <div key={room.id} className={`flex items-center gap-2 rounded-2xl px-3 py-2 font-bold ${activeRoom?.id === room.id ? 'bg-elBlue text-white shadow-soft' : 'bg-white/55 text-elBlueDark'}`}>
+                <button onClick={() => selectRoom(room)} className="min-w-0 flex-1 text-left">
+                  <span className="block truncate"># {room.name}</span>
+                </button>
                 <span className="text-xs">{room.type}</span>
-              </button>
+                {(room.type === 'DIRECT' || room.type === 'CUSTOM') && (
+                  <button onClick={(event) => deleteRoom(event, room)} title="Hapus room" className="rounded-full p-1 hover:bg-white/20">
+                    <X size={15} />
+                  </button>
+                )}
+              </div>
             ))}
           </nav>
           <div className="mt-8">
@@ -154,12 +280,27 @@ export default function ChatPage() {
             </div>
           </div>
           <div className="mt-5 grid grid-cols-2 gap-3">
-            <button className="rounded-2xl bg-white/75 p-4 font-bold text-elBlue shadow-soft" title="Voice call V2"><Mic className="mx-auto mb-2" />Voice</button>
-            <button className="rounded-2xl bg-white/75 p-4 font-bold text-elBlue shadow-soft" title="Video call V2"><Video className="mx-auto mb-2" />Video</button>
+            <button onClick={() => startCall('voice')} className="rounded-2xl bg-white/75 p-4 font-bold text-elBlue shadow-soft" title="Voice call LAN"><Mic className="mx-auto mb-2" />Voice</button>
+            <button onClick={() => startCall('video')} className="rounded-2xl bg-white/75 p-4 font-bold text-elBlue shadow-soft" title="Video call LAN"><Video className="mx-auto mb-2" />Video</button>
           </div>
-          {/* TODO: Implementasi WebRTC pada versi berikutnya. */}
         </aside>
       </div>
+      {(incomingCall || callState) && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4">
+          <section className="glass w-full max-w-md rounded-[32px] p-6 text-center">
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-elBlue text-3xl font-black text-white">
+              {(callState?.peer?.fullName || incomingCall?.fromName || 'C')[0]}
+            </div>
+            <h2 className="mt-4 text-2xl font-black text-elBlueDark">{callState?.peer?.fullName || incomingCall?.fromName}</h2>
+            <p className="mt-1 text-sm font-bold text-slate-500">{callState?.status || `Panggilan ${incomingCall?.mode === 'video' ? 'video' : 'suara'} masuk`}</p>
+            {remoteStream && callState?.mode === 'video' && <video ref={remoteVideoRef} autoPlay playsInline className="mt-5 aspect-video w-full rounded-3xl bg-slate-900 object-cover" />}
+            <div className="mt-6 flex justify-center gap-3">
+              {incomingCall && <button onClick={acceptCall} className="rounded-2xl bg-elGreen px-5 py-3 font-black text-white">Terima</button>}
+              <button onClick={() => endCall()} className="inline-flex items-center gap-2 rounded-2xl bg-red-500 px-5 py-3 font-black text-white"><PhoneOff size={18} /> Tutup</button>
+            </div>
+          </section>
+        </div>
+      )}
     </main>
   );
 }

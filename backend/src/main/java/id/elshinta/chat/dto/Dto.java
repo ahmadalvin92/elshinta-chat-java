@@ -24,5 +24,5 @@ public class Dto {
     public record ResetPasswordRequest(String newPassword) {}
     public record AnnouncementRequest(String title, String body) {}
     public record DashboardResponse(long totalUser, long totalRoom, long userOnline, long totalAnnouncement) {}
+    public record CallSignal(Long toUserId, Long fromUserId, String fromName, String mode, String type, String payload) {}
 }
-

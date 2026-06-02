@@ -94,6 +94,14 @@ public class ChatController {
     public Dto.RoomResponse direct(Authentication auth, @PathVariable Long userId) {
         var current = users.findByUsername(auth.getName()).orElseThrow();
         var target = users.findById(userId).orElseThrow();
+        var currentRooms = roomMembers.findRoomsByUserAndType(current, RoomType.DIRECT);
+        var targetRoomIds = roomMembers.findRoomsByUserAndType(target, RoomType.DIRECT).stream().map(Room::getId).toList();
+        var existing = currentRooms.stream()
+                .filter(room -> targetRoomIds.contains(room.getId()))
+                .findFirst();
+        if (existing.isPresent()) {
+            return mapper.room(existing.get());
+        }
         Room room = new Room();
         room.setName(current.getFullName() + " & " + target.getFullName());
         room.setType(RoomType.DIRECT);
@@ -107,5 +115,24 @@ public class ChatController {
         roomMembers.save(first);
         roomMembers.save(second);
         return mapper.room(room);
+    }
+
+    @DeleteMapping("/rooms/{roomId}")
+    public void deleteRoom(Authentication auth, @PathVariable Long roomId) {
+        var current = users.findByUsername(auth.getName()).orElseThrow();
+        Room room = rooms.findById(roomId).orElseThrow();
+        if (room.getType() != RoomType.DIRECT && room.getType() != RoomType.CUSTOM) {
+            throw new IllegalArgumentException("Hanya DM dan room custom yang bisa dihapus dari chat.");
+        }
+        boolean member = roomMembers.findByRoom(room).stream().anyMatch(item -> item.getUser().getId().equals(current.getId()));
+        boolean admin = current.getRole() == id.elshinta.chat.entity.Role.ADMIN || current.getRole() == id.elshinta.chat.entity.Role.SUPER_ADMIN;
+        if (!member && !admin) {
+            throw new IllegalArgumentException("Tidak punya akses menghapus room ini.");
+        }
+        messages.findByRoom(room).forEach(message -> files.deleteByUrl(message.getFileUrl()));
+        messages.deleteByRoom(room);
+        roomMembers.deleteByRoom(room);
+        rooms.delete(room);
+        broker.convertAndSend("/topic/rooms/deleted", roomId);
     }
 }
