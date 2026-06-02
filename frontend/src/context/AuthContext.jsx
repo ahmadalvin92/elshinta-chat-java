@@ -29,6 +29,13 @@ export function AuthProvider({ children }) {
       setToken(data.token);
       setUserState(data.user);
     },
+    async guest(fullName) {
+      const { data } = await api.post('/auth/guest', { fullName });
+      localStorage.setItem('elshinta_token', data.token);
+      localStorage.setItem('elshinta_user', JSON.stringify(data.user));
+      setToken(data.token);
+      setUserState(data.user);
+    },
     async register(payload) {
       const { data } = await api.post('/auth/register', payload);
       localStorage.setItem('elshinta_token', data.token);

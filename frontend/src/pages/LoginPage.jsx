@@ -1,43 +1,37 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { Eye, Lock, User } from 'lucide-react';
+import { User } from 'lucide-react';
 import { useState } from 'react';
 import AuthShell from '../components/AuthShell.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { guest } = useAuth();
   const navigate = useNavigate();
-  const [form, setForm] = useState({ username: '', password: '' });
+  const [fullName, setFullName] = useState('');
   const [error, setError] = useState('');
 
   async function submit(event) {
     event.preventDefault();
     setError('');
     try {
-      await login(form);
+      await guest(fullName);
       navigate('/');
     } catch {
-      setError('Username atau password tidak sesuai.');
+      setError('Nama minimal 2 karakter.');
     }
   }
 
   return (
-    <AuthShell title="Welcome Back!">
+    <AuthShell title="Masuk Chat">
       <form onSubmit={submit} className="space-y-4">
         <label className="flex items-center gap-3 rounded-2xl border border-blue-100 bg-white/70 px-4 py-3">
           <User size={18} className="text-elBlue" />
-          <input className="w-full bg-transparent outline-none" placeholder="Username" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} />
-        </label>
-        <label className="flex items-center gap-3 rounded-2xl border border-blue-100 bg-white/70 px-4 py-3">
-          <Lock size={18} className="text-elBlue" />
-          <input className="w-full bg-transparent outline-none" placeholder="Password" type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
-          <Eye size={17} className="text-slate-400" />
+          <input className="w-full bg-transparent outline-none" placeholder="Masukkan nama Anda" value={fullName} onChange={(e) => setFullName(e.target.value)} autoFocus />
         </label>
         {error && <p className="text-sm font-semibold text-red-500">{error}</p>}
-        <button className="w-full rounded-2xl bg-gradient-to-r from-sky-400 via-elBlue to-violet-600 py-3 font-black text-white shadow-soft">Login</button>
-        <p className="text-center text-sm text-slate-500">Belum punya akun? <Link className="font-bold text-elBlue" to="/register">Register</Link></p>
+        <button className="w-full rounded-2xl bg-gradient-to-r from-sky-400 via-elBlue to-violet-600 py-3 font-black text-white shadow-soft">Masuk Chat</button>
+        <p className="text-center text-sm text-slate-500">Admin? <Link className="font-bold text-elBlue" to="/admin-login">Login Superadmin</Link></p>
       </form>
     </AuthShell>
   );
 }
-

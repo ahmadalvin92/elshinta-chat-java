@@ -66,6 +66,38 @@ public class AuthController {
         return new Dto.AuthResponse(jwtService.generate(user), mapper.user(user));
     }
 
+    @PostMapping("/guest")
+    public Dto.AuthResponse guest(@RequestBody Dto.GuestRequest request) {
+        String fullName = request.fullName() == null ? "" : request.fullName().trim();
+        if (fullName.length() < 2) {
+            throw new IllegalArgumentException("Nama minimal 2 karakter.");
+        }
+        String username = "guest-" + fullName.toLowerCase()
+                .replaceAll("[^a-z0-9]+", "-")
+                .replaceAll("(^-|-$)", "");
+        if (username.equals("guest-")) {
+            username = "guest-user";
+        }
+        String baseUsername = username;
+        int suffix = 2;
+        while (users.existsByUsername(username) && users.findByUsername(username).map(User::getFullName).filter(fullName::equalsIgnoreCase).isEmpty()) {
+            username = baseUsername + "-" + suffix++;
+        }
+        String guestUsername = username;
+        User user = users.findByUsername(guestUsername).orElseGet(() -> {
+            User created = new User();
+            created.setFullName(fullName);
+            created.setUsername(guestUsername);
+            created.setPassword(encoder.encode("guest-user-no-password"));
+            created.setDivision(divisions.findByNameIgnoreCase("Newsroom").orElse(null));
+            return created;
+        });
+        user.setFullName(fullName);
+        user.setOnline(true);
+        users.save(user);
+        return new Dto.AuthResponse(jwtService.generate(user), mapper.user(user));
+    }
+
     @PostMapping("/logout")
     public void logout(@RequestHeader("Authorization") String authorization) {
         String token = authorization.replace("Bearer ", "");

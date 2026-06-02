@@ -59,11 +59,11 @@ Backend berjalan di:
 http://localhost:8080
 ```
 
-Default super admin:
+Superadmin default:
 
 ```text
-username: superadmin
-password: ChangeMe123!
+username: alvin-superadmin
+password: alvin123
 ```
 
 Segera ganti password setelah login pertama.
@@ -162,8 +162,9 @@ npm run preview -- --host 0.0.0.0
 
 ## Fitur Utama
 
-- Register dengan nama lengkap, username, password, divisi, dan kode akses internal.
-- Login, logout, profile, edit profile, upload avatar, change password.
+- User biasa masuk cepat dengan nama saja; backend menyimpan nama sebagai user agar history tetap terkait.
+- Superadmin login khusus untuk admin panel.
+- Logout, profile, edit profile, upload avatar, change password.
 - Online/offline status dan last seen.
 - Room umum, room divisi, room custom, dan fondasi direct message.
 - Chat realtime WebSocket, emoji, upload gambar, preview gambar, timestamp, modern chat bubble.
@@ -180,4 +181,3 @@ git add .
 git commit -m "Initial Elshinta Chat Internal fullstack app"
 git push -u origin main
 ```
-

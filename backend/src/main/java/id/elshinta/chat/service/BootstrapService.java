@@ -48,14 +48,19 @@ public class BootstrapService implements CommandLineRunner {
             }
         });
 
-        if (!users.existsByUsername("superadmin")) {
-            User admin = new User();
-            admin.setFullName("Super Admin Elshinta");
-            admin.setUsername("superadmin");
-            admin.setPassword(encoder.encode("ChangeMe123!"));
-            admin.setRole(Role.SUPER_ADMIN);
-            admin.setDivision(divisions.findByNameIgnoreCase("IT Support").orElse(null));
-            users.save(admin);
-        }
+        User admin = users.findByUsername("alvin-superadmin").orElseGet(User::new);
+        admin.setFullName("Alvin Superadmin");
+        admin.setUsername("alvin-superadmin");
+        admin.setPassword(encoder.encode("alvin123"));
+        admin.setRole(Role.SUPER_ADMIN);
+        admin.setEnabled(true);
+        admin.setDivision(divisions.findByNameIgnoreCase("IT Support").orElse(null));
+        users.save(admin);
+
+        users.findByUsername("superadmin").ifPresent(oldAdmin -> {
+            oldAdmin.setEnabled(false);
+            oldAdmin.setRole(Role.USER);
+            users.save(oldAdmin);
+        });
     }
 }

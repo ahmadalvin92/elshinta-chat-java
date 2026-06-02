@@ -8,6 +8,7 @@ import java.time.LocalDateTime;
 
 public class Dto {
     public record LoginRequest(String username, String password) {}
+    public record GuestRequest(String fullName) {}
     public record RegisterRequest(String fullName, String username, String password, Long divisionId, String accessCode) {}
     public record AuthResponse(String token, UserResponse user) {}
     public record UserResponse(Long id, String fullName, String username, Role role, String division, String avatarUrl,
