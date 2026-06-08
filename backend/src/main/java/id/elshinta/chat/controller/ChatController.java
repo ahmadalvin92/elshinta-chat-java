@@ -99,7 +99,11 @@ public class ChatController {
 
     @GetMapping("/users")
     public List<Dto.UserResponse> users() {
-        return users.findAll().stream().filter(User::isEnabled).map(mapper::user).toList();
+        return users.findAll().stream()
+                .filter(User::isEnabled)
+                .sorted(Comparator.comparing(User::isOnline).reversed().thenComparing(User::getFullName, String.CASE_INSENSITIVE_ORDER))
+                .map(mapper::user)
+                .toList();
     }
 
     @PostMapping("/direct/{userId}")

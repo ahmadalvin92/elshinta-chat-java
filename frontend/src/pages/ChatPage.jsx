@@ -24,6 +24,7 @@ export default function ChatPage() {
   const [remoteStream, setRemoteStream] = useState(null);
   const [announcementToast, setAnnouncementToast] = useState(null);
   const fileRef = useRef(null);
+  const messagesEndRef = useRef(null);
   const pcRef = useRef(null);
   const localStreamRef = useRef(null);
   const remoteVideoRef = useRef(null);
@@ -71,6 +72,10 @@ export default function ChatPage() {
       remoteVideoRef.current.srcObject = remoteStream;
     }
   }, [remoteStream]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ block: 'end' });
+  }, [messages.length, activeRoom?.id]);
 
   async function send() {
     if (!text.trim() || !activeRoom) return;
@@ -194,10 +199,10 @@ export default function ChatPage() {
 
   return (
     <main className="app-shell">
-      <div className="glass mx-auto grid h-full max-w-[1440px] grid-cols-1 overflow-hidden rounded-[32px] lg:grid-cols-[280px_1fr_290px]">
-        <aside className={`${mobileNav ? 'block' : 'hidden'} border-r border-blue-100/80 p-5 lg:block`}>
+      <div className="glass chat-frame mx-auto grid h-full w-full grid-cols-1 overflow-hidden rounded-[28px] lg:grid-cols-[260px_minmax(0,1fr)] xl:grid-cols-[260px_minmax(0,1fr)_248px] 2xl:grid-cols-[280px_minmax(0,1fr)_260px]">
+        <aside className={`${mobileNav ? 'flex' : 'hidden'} min-h-0 flex-col border-r border-blue-100/80 p-4 lg:flex`}>
           <Logo />
-          <nav className="mt-8 space-y-3">
+          <nav className="mt-6 shrink-0 space-y-2">
             {rooms.map((room) => (
               <div key={room.id} className={`flex items-center gap-2 rounded-2xl px-3 py-2 font-bold ${activeRoom?.id === room.id ? 'bg-elBlue text-white shadow-soft' : 'bg-white/55 text-elBlueDark'}`}>
                 <button onClick={() => selectRoom(room)} className="min-w-0 flex-1 text-left">
@@ -212,9 +217,9 @@ export default function ChatPage() {
               </div>
             ))}
           </nav>
-          <div className="mt-8">
+          <div className="mt-6 min-h-0 flex-1">
             <p className="mb-3 text-xs font-black uppercase text-slate-500">Direct Messages</p>
-            <div className="space-y-3">
+            <div className="h-full space-y-2 overflow-y-auto pr-1">
               {directUsers.filter((item) => item.id !== user?.id).map((item, index) => (
                 <button key={item.id} onClick={() => openDirect(item)} className="flex w-full items-center gap-3 rounded-2xl bg-white/50 p-2 text-left">
                   <Avatar name={item.fullName} index={index} src={item.avatarUrl} />
@@ -243,7 +248,7 @@ export default function ChatPage() {
             </div>
           </header>
 
-          <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-6">
+          <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-6 py-5 lg:px-8">
             {messages.map((message) => <MessageBubble key={message.id} message={message} mine={message.sender?.id === user?.id} />)}
             {!messages.length && (
               <div className="mx-auto mt-16 max-w-sm text-center">
@@ -252,11 +257,12 @@ export default function ChatPage() {
                 <p className="mt-1 text-sm text-slate-500">Pesan realtime akan muncul di room ini dan otomatis dibersihkan setelah 3 hari.</p>
               </div>
             )}
+            <div ref={messagesEndRef} />
           </div>
 
-          <footer className="relative px-5 pb-5">
+          <footer className="relative shrink-0 px-6 pb-4 lg:px-8">
             {showEmoji && <div className="absolute bottom-24 right-5 z-10"><Picker data={data} onEmojiSelect={(emoji) => setText((prev) => prev + emoji.native)} /></div>}
-            <div className="flex items-center gap-2 rounded-3xl border border-blue-100 bg-white/85 p-3 shadow-soft">
+            <div className="flex items-center gap-2 rounded-3xl border border-blue-100 bg-white/90 p-2.5 shadow-soft">
               <button className="rounded-2xl p-2 text-elBlue" title="Emoji" onClick={() => setShowEmoji(!showEmoji)}><Smile size={21} /></button>
               <button className="rounded-2xl p-2 text-elBlue" title="Attach"><Paperclip size={21} /></button>
               <button className="rounded-2xl p-2 text-elBlue" title="Upload gambar" onClick={() => fileRef.current?.click()}><Image size={21} /></button>
@@ -267,8 +273,8 @@ export default function ChatPage() {
           </footer>
         </section>
 
-        <aside className="hidden p-5 xl:block">
-          <div className="mb-5 flex items-center justify-between">
+        <aside className="hidden min-h-0 overflow-y-auto p-4 xl:block">
+          <div className="mb-4 flex items-center justify-between">
             <Bell className="text-elBlue" />
             <div className="flex items-center gap-3">
               <Avatar name={user?.fullName || 'User'} index={1} src={user?.avatarUrl} />
@@ -278,21 +284,21 @@ export default function ChatPage() {
               </div>
             </div>
           </div>
-          <div className="overflow-hidden rounded-[28px] bg-gradient-to-br from-elBlue to-violet-600 text-white shadow-soft">
-            <div className="p-6 text-center">
+          <div className="overflow-hidden rounded-[24px] bg-gradient-to-br from-elBlue to-violet-600 text-white shadow-soft">
+            <div className="p-5 text-center">
               <Avatar large name={user?.fullName || 'User'} src={user?.avatarUrl} />
-              <h3 className="mt-3 text-3xl font-black">{user?.fullName}</h3>
+              <h3 className="mt-3 truncate text-2xl font-black">{user?.fullName}</h3>
               <p className="mt-1 rounded-full bg-white/25 px-3 py-1 text-sm">{user?.division || 'Umum'}</p>
             </div>
-            <div className="space-y-2 bg-white p-4 text-elBlueDark">
-              <Link className="flex items-center gap-3 rounded-2xl p-3 hover:bg-soft" to="/profile"><UserRound size={18} /> Edit Profile</Link>
-              {(user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN') && <Link className="flex items-center gap-3 rounded-2xl p-3 hover:bg-soft" to="/admin"><Settings size={18} /> Admin Panel</Link>}
-              <button className="flex w-full items-center gap-3 rounded-2xl p-3 text-red-500 hover:bg-red-50" onClick={logout}><LogOut size={18} /> Logout</button>
+            <div className="space-y-1 bg-white p-3 text-elBlueDark">
+              <Link className="flex items-center gap-3 rounded-2xl p-2.5 hover:bg-soft" to="/profile"><UserRound size={18} /> Edit Profile</Link>
+              {(user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN') && <Link className="flex items-center gap-3 rounded-2xl p-2.5 hover:bg-soft" to="/admin"><Settings size={18} /> Admin Panel</Link>}
+              <button className="flex w-full items-center gap-3 rounded-2xl p-2.5 text-red-500 hover:bg-red-50" onClick={logout}><LogOut size={18} /> Logout</button>
             </div>
           </div>
-          <div className="mt-5 grid grid-cols-2 gap-3">
-            <button onClick={() => startCall('voice')} className="rounded-2xl bg-white/75 p-4 font-bold text-elBlue shadow-soft" title="Voice call LAN"><Mic className="mx-auto mb-2" />Voice</button>
-            <button onClick={() => startCall('video')} className="rounded-2xl bg-white/75 p-4 font-bold text-elBlue shadow-soft" title="Video call LAN"><Video className="mx-auto mb-2" />Video</button>
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            <button onClick={() => startCall('voice')} className="rounded-2xl bg-white/75 p-3 font-bold text-elBlue shadow-soft" title="Voice call LAN"><Mic className="mx-auto mb-1" />Voice</button>
+            <button onClick={() => startCall('video')} className="rounded-2xl bg-white/75 p-3 font-bold text-elBlue shadow-soft" title="Video call LAN"><Video className="mx-auto mb-1" />Video</button>
           </div>
         </aside>
       </div>

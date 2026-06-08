@@ -9,6 +9,7 @@
 body {
   margin: 0;
   min-height: 100vh;
+  overflow: hidden;
   color: #07183f;
   background:
     radial-gradient(circle at 8% 10%, rgba(36, 87, 245, 0.22), transparent 24rem),
@@ -18,7 +19,7 @@ body {
 }
 
 #root {
-  min-height: 100dvh;
+  height: 100dvh;
 }
 
 .glass {
@@ -40,12 +41,20 @@ body {
 
 .app-shell {
   height: 100dvh;
-  padding: 18px;
+  padding: 12px;
   overflow: hidden;
+}
+
+.chat-frame {
+  max-width: min(1880px, calc(100vw - 24px));
 }
 
 @media (max-width: 900px) {
   .app-shell {
-    padding: 10px;
+    padding: 8px;
+  }
+
+  .chat-frame {
+    max-width: calc(100vw - 16px);
   }
 }
