@@ -4,6 +4,29 @@ Stay Connected. Inside the Office.
 
 Elshinta Chat Internal adalah aplikasi komunikasi internal kantor berbasis LAN. Backend dan frontend dapat dijalankan di alamat IP komputer server kantor sehingga perangkat lain dalam jaringan lokal bisa mengakses aplikasi tanpa internet.
 
+## Ringkasan
+
+Proyek ini adalah versi Java dari aplikasi komunikasi internal Elshinta. Backend menyediakan REST API, autentikasi JWT, pesan real-time, pengelolaan room, profil, pengumuman, dan penyimpanan gambar lokal. Frontend React menyajikan antarmuka chat yang responsif untuk staf dan administrator.
+
+| Bagian | Teknologi |
+| --- | --- |
+| Bahasa backend | Java 21 |
+| Framework backend | Spring Boot 3, Spring Security, Spring Data JPA |
+| Realtime | Spring WebSocket, STOMP, SockJS |
+| Bahasa frontend | JavaScript |
+| Framework frontend | React, Vite, Tailwind CSS |
+| Database | MySQL |
+| Autentikasi | JWT |
+
+## Fitur
+
+- Percakapan room dan pengumuman internal secara real-time.
+- Register, login, profil pengguna, dan pengelolaan peran admin.
+- Room umum, divisi, dan custom dengan anggota terkelola.
+- Upload gambar chat ke penyimpanan media lokal.
+- Pengurutan daftar pengguna, status kehadiran, serta panel administrasi.
+- Pembersihan otomatis pesan dan gambar yang sudah lebih dari tiga hari.
+
 ## Struktur
 
 ```text
